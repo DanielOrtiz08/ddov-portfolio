@@ -112,11 +112,11 @@ export function Footer({
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
+          <p className="text-sm text-muted-foreground w-full sm:w-auto">
             © {currentYear} Daniel David Ortiz Villanueva. All rights reserved.
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground w-full sm:w-auto sm:text-right">
             Built with Next.js, TypeScript & Tailwind CSS
           </p>
         </div>
