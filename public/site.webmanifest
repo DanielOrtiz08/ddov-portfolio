@@ -1,1 +1,18 @@
-{ "name":"Daniel Ortiz Portfolio", "short_name":"Portfolio", "start_url":"/", "display":"standalone", "background_color":"#0f172a", "theme_color":"#0f172a", "icons":[] }
+{
+  "name": "Daniel Ortiz Portfolio",
+  "short_name": "Portfolio",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": []
+}
+{
+  "name": "Daniel Ortiz Portfolio",
+  "short_name": "Portfolio",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": []
+}
