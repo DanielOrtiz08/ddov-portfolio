@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { ContactFormData, ContactFormErrors } from '@/lib/types/contact';
+import { FloatingTechIcons } from '@/components/ui-custom/floating-tech-icons';
 
 const contactMethods = [
   {
@@ -136,6 +137,8 @@ export function ContactSection() {
 
   return (
     <section id="contact" className="py-24 relative overflow-hidden">
+      <FloatingTechIcons />
+
       {/* Background */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />

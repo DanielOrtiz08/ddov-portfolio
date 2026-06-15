@@ -5,6 +5,7 @@ import * as React from 'react';
 import { ExternalLink, Github, Layers, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { FloatingTechIcons } from '@/components/ui-custom/floating-tech-icons';
 
 const projects = [
   {
@@ -175,6 +176,8 @@ export function ProjectsSection() {
 
   return (
     <section id="projects" className="py-24 relative overflow-hidden">
+      <FloatingTechIcons />
+
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-0 left-1/3 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />

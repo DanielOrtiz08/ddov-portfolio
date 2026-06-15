@@ -17,6 +17,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FloatingTechIcons } from '@/components/ui-custom/floating-tech-icons';
 
 const architecturePatterns = [
   {
@@ -110,6 +111,8 @@ export function ArchitectureSection() {
 
   return (
     <section id="architecture" className="py-24 relative overflow-hidden">
+      <FloatingTechIcons />
+
       {/* Background */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-primary/5 to-accent/5 rounded-full blur-3xl" />

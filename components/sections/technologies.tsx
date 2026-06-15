@@ -3,6 +3,7 @@
 import { motion, useInView } from 'framer-motion';
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { FloatingTechIcons } from '@/components/ui-custom/floating-tech-icons';
 
 const techCategories = [
   {
@@ -130,6 +131,8 @@ export function TechnologiesSection() {
 
   return (
     <section id="technologies" className="py-24 relative overflow-hidden">
+      <FloatingTechIcons />
+
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-1/2 left-1/4 w-[400px] h-[400px] bg-primary/10 rounded-full blur-3xl opacity-30" />

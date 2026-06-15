@@ -3,9 +3,9 @@
 import * as React from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Download, ArrowDown, Terminal, Cloud, Server, Code2 } from 'lucide-react';
+import { Github, Linkedin, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { FloatingTechIcons } from '@/components/ui-custom/floating-tech-icons';
 
 const roles = [
   'Backend Engineer',
@@ -61,46 +61,7 @@ export function HeroSection() {
         />
       </div>
 
-      {/* Floating icons */}
-      <motion.div
-        className="absolute top-[20%] left-[10%] hidden lg:block"
-        animate={{ y: [0, -20, 0], rotate: [0, 10, 0] }}
-        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <div className="p-4 rounded-2xl glass">
-          <Server className="h-8 w-8 text-primary" />
-        </div>
-      </motion.div>
-
-      <motion.div
-        className="absolute top-[30%] right-[15%] hidden lg:block"
-        animate={{ y: [0, 20, 0], rotate: [0, -10, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-      >
-        <div className="p-4 rounded-2xl glass">
-          <Cloud className="h-8 w-8 text-accent" />
-        </div>
-      </motion.div>
-
-      <motion.div
-        className="absolute bottom-[25%] left-[15%] hidden lg:block"
-        animate={{ y: [0, 15, 0], rotate: [0, -5, 0] }}
-        transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-      >
-        <div className="p-4 rounded-2xl glass">
-          <Terminal className="h-8 w-8 text-primary" />
-        </div>
-      </motion.div>
-
-      <motion.div
-        className="absolute bottom-[35%] right-[10%] hidden lg:block"
-        animate={{ y: [0, -15, 0], rotate: [0, 5, 0] }}
-        transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
-      >
-        <div className="p-4 rounded-2xl glass">
-          <Code2 className="h-8 w-8 text-accent" />
-        </div>
-      </motion.div>
+      <FloatingTechIcons />
 
       {/* Main content */}
       <div className="section-container pt-24 pb-16 text-center">

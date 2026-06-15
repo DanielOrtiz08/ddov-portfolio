@@ -11,6 +11,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FloatingTechIcons } from '@/components/ui-custom/floating-tech-icons';
 
 const experiences = [
   {
@@ -64,6 +65,8 @@ export function ExperienceSection() {
 
   return (
     <section id="experience" className="py-24 relative overflow-hidden">
+      <FloatingTechIcons />
+
       {/* Background */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />

@@ -3,6 +3,7 @@
 import { motion, useInView } from 'framer-motion';
 import * as React from 'react';
 import { GraduationCap, Code2, Cloud, Server, Lightbulb, Users } from 'lucide-react';
+import { FloatingTechIcons } from '@/components/ui-custom/floating-tech-icons';
 
 const highlights = [
   {
@@ -56,6 +57,8 @@ export function AboutSection() {
 
   return (
     <section id="about" className="py-24 relative overflow-hidden">
+      <FloatingTechIcons />
+
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
