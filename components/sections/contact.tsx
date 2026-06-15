@@ -38,8 +38,8 @@ const contactMethods = [
   {
     icon: Github,
     label: 'GitHub',
-    value: '@ddov0811',
-    href: 'https://github.com/DanielOrtiz0811',
+    value: '@DanielOrtiz08',
+    href: 'https://github.com/DanielOrtiz08',
     color: 'from-slate-600 to-black-200',
   },
 ];

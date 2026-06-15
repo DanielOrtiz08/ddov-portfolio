@@ -18,6 +18,23 @@ export function HeroSection() {
   const [currentRole, setCurrentRole] = React.useState(0);
 
   React.useEffect(() => {
+    const protectImage = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-protected-image="true"]')) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener('contextmenu', protectImage);
+    document.addEventListener('dragstart', protectImage);
+
+    return () => {
+      document.removeEventListener('contextmenu', protectImage);
+      document.removeEventListener('dragstart', protectImage);
+    };
+  }, []);
+
+  React.useEffect(() => {
     const interval = setInterval(() => {
       setCurrentRole((prev) => (prev + 1) % roles.length);
     }, 3000);
@@ -94,20 +111,27 @@ export function HeroSection() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="mb-8"
         >
-          <div className="relative inline-block">
+          <div
+            className="relative inline-block select-none"
+            data-protected-image="true"
+            onContextMenu={(event) => event.preventDefault()}
+          >
             {/* Glow ring */}
             {/*<div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary to-accent blur-xl opacity-50 scale-110 animate-pulse-glow" />*/}
 
             {/* Border gradient */}
             <div className="relative p-1 rounded-full bg-gradient-to-r from-primary to-accent">
-              <div className="w-50 h-50 md:w-48 md:h-48 rounded-full bg-card overflow-hidden relative">
+              <div className="relative h-40 w-40 overflow-hidden rounded-full bg-card sm:h-44 sm:w-44 md:h-48 md:w-48">
                 <Image
                   src="/images/foto-formal.png"
                   alt="Foto profesional"
                   fill
-                  className="object-cover"
+                  draggable={false}
+                  onContextMenu={(event) => event.preventDefault()}
+                  className="pointer-events-none object-cover"
                   sizes="(max-width: 768px) 14rem, 16rem"
                 />
+                <div className="absolute inset-0" aria-hidden="true" />
               </div>
             </div>
           </div>
