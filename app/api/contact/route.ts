@@ -57,9 +57,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<SendConta
     if (!anti.ok) {
       // Return structured field errors so frontend can show them inline
       const fieldErrors = { message: anti.error };
+      const responseInit = anti.retryAfter
+        ? { status: anti.status, headers: { 'Retry-After': String(anti.retryAfter) } }
+        : { status: anti.status };
+
       return NextResponse.json(
         { success: false, message: anti.error, error: JSON.stringify(fieldErrors) },
-        { status: anti.status }
+        responseInit
       );
     }
 

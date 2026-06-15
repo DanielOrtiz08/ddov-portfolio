@@ -2,17 +2,23 @@ import { ContactFormData } from '@/lib/types/contact';
 import { NextRequest } from 'next/server';
 import { getRedis } from '@/lib/utils/redis';
 
-type ValidatorResult = { ok: true } | { ok: false; status: number; error: string };
+type ValidatorResult =
+  | { ok: true }
+  | { ok: false; status: number; error: string; retryAfter?: number };
 
 // Fallback in-memory stores (used when Redis isn't configured)
 const ipWindowMap: Map<string, number[]> = new Map();
 const emailWindowMap: Map<string, number[]> = new Map();
 const lastMessageMap: Map<string, { text: string; ts: number; count: number }> = new Map();
+const blockedUntilMap: Map<string, number> = new Map();
+const violationMap: Map<string, { count: number; ts: number }> = new Map();
 
 // Configuration
 const WINDOW_MS = Number(process.env.ANTISPAM_WINDOW_MS || 60_000); // 60 seconds
 const MAX_PER_WINDOW = Number(process.env.ANTISPAM_MAX_PER_WINDOW || 3);
 const REPEAT_WINDOW_MS = Number(process.env.ANTISPAM_REPEAT_MS || 10_000);
+const BLOCK_MS = Number(process.env.ANTISPAM_BLOCK_MS || 15 * 60_000);
+const BLOCK_AFTER_VIOLATIONS = Number(process.env.ANTISPAM_BLOCK_AFTER_VIOLATIONS || 2);
 
 const bannedWords = (process.env.ANTISPAM_PROFANITY || `
 hp,hpta,hijueputa,jueputa,gonorrea,gono,marica,marico,mrk,mka,mk,malparido,malparida,careverga,carechimba,caremonda,chimba,verga,monda,culo,culero,culera,pene,pinga,vagina,chucha, teta,tetas,puta,puto,putos,perra,zorra,mierda,mierdero,joder,jodete,cabron,cabrón,idiota,imbecil,imbécil,estupido,estúpido,pendejo,pendeja,mamaguevo,sapoperro,cacorro,huevon,huevón,guevon,guevón,coño,carajo,ojete,mamón,mamon,culiao,culiada,culiado,pelotudo,pelotuda,tarado,tarada,retrasado,retrasada,
@@ -59,18 +65,96 @@ function pruneWindow(arr: number[], cutoff: number) {
   while (arr.length && arr[0] < cutoff) arr.shift();
 }
 
+function retryAfterSeconds(milliseconds: number) {
+  return Math.max(1, Math.ceil(milliseconds / 1000));
+}
+
+function blockMessage(retryAfter: number) {
+  return `Demasiados intentos. El envío queda bloqueado temporalmente; intenta de nuevo en ${retryAfter} segundos.`;
+}
+
+function getMemoryBlock(scope: string): ValidatorResult | null {
+  const blockedUntil = blockedUntilMap.get(scope);
+  if (!blockedUntil) return null;
+
+  const remaining = blockedUntil - now();
+  if (remaining <= 0) {
+    blockedUntilMap.delete(scope);
+    return null;
+  }
+
+  const retryAfter = retryAfterSeconds(remaining);
+  return { ok: false, status: 429, error: blockMessage(retryAfter), retryAfter };
+}
+
+function recordMemoryViolation(scope: string): ValidatorResult {
+  const ts = now();
+  const current = violationMap.get(scope);
+  const nextCount = current && ts - current.ts < BLOCK_MS ? current.count + 1 : 1;
+  violationMap.set(scope, { count: nextCount, ts });
+
+  if (nextCount >= BLOCK_AFTER_VIOLATIONS) {
+    blockedUntilMap.set(scope, ts + BLOCK_MS);
+    const retryAfter = retryAfterSeconds(BLOCK_MS);
+    return { ok: false, status: 429, error: blockMessage(retryAfter), retryAfter };
+  }
+
+  const retryAfter = retryAfterSeconds(WINDOW_MS);
+  return { ok: false, status: 429, error: 'Demasiadas solicitudes. Intenta más tarde.', retryAfter };
+}
+
+async function getRedisBlock(redis: Awaited<ReturnType<typeof getRedis>>, scope: string): Promise<ValidatorResult | null> {
+  if (!redis) return null;
+
+  const blockedKey = `antispam:block:${scope}`;
+  const ttl = await redis.pttl(blockedKey);
+  if (ttl > 0) {
+    const retryAfter = retryAfterSeconds(ttl);
+    return { ok: false, status: 429, error: blockMessage(retryAfter), retryAfter };
+  }
+
+  return null;
+}
+
+async function recordRedisViolation(redis: Awaited<ReturnType<typeof getRedis>>, scope: string): Promise<ValidatorResult> {
+  if (!redis) return recordMemoryViolation(scope);
+
+  const violationKey = `antispam:violations:${scope}`;
+  const blockedKey = `antispam:block:${scope}`;
+  const violations = await redis.incr(violationKey);
+  await redis.pexpire(violationKey, BLOCK_MS);
+
+  if (violations >= BLOCK_AFTER_VIOLATIONS) {
+    await redis.set(blockedKey, '1', 'PX', BLOCK_MS);
+    const retryAfter = retryAfterSeconds(BLOCK_MS);
+    return { ok: false, status: 429, error: blockMessage(retryAfter), retryAfter };
+  }
+
+  const retryAfter = retryAfterSeconds(WINDOW_MS);
+  return { ok: false, status: 429, error: 'Demasiadas solicitudes. Intenta más tarde.', retryAfter };
+}
+
 export async function validateAntiSpam(data: ContactFormData, req: NextRequest): Promise<ValidatorResult> {
   try {
     const ts = now();
     const cutoff = ts - WINDOW_MS;
     const clientKey = getClientKey(req);
     const ip = clientKey.split('::')[0];
+    const emailKey = (data.email || '').toLowerCase();
 
     // Redis is used only when REDIS_URL is configured and connection succeeds.
     // If Redis is unavailable, the code falls back safely to in-memory anti-spam.
     const redis = await getRedis();
     if (redis) {
       try {
+          const ipBlock = await getRedisBlock(redis, `ip:${ip}`);
+          if (ipBlock) return ipBlock;
+
+          if (emailKey) {
+            const emailBlock = await getRedisBlock(redis, `email:${emailKey}`);
+            if (emailBlock) return emailBlock;
+          }
+
           // Redis-backed implementation (production-ready)
           const ipKey = `antispam:ip:${ip}`;
           const member = `${ts}-${Math.random().toString(36).slice(2, 8)}`;
@@ -79,10 +163,9 @@ export async function validateAntiSpam(data: ContactFormData, req: NextRequest):
           await redis.expire(ipKey, Math.ceil(WINDOW_MS / 1000) + 5);
           const ipCount = await redis.zcard(ipKey);
           if (ipCount > MAX_PER_WINDOW) {
-            return { ok: false, status: 429, error: 'Demasiadas solicitudes desde tu ubicación. Intenta más tarde.' };
+            return recordRedisViolation(redis, `ip:${ip}`);
           }
 
-          const emailKey = (data.email || '').toLowerCase();
           if (emailKey) {
             const eKey = `antispam:email:${emailKey}`;
             const eMember = `${ts}-${Math.random().toString(36).slice(2, 8)}`;
@@ -91,7 +174,7 @@ export async function validateAntiSpam(data: ContactFormData, req: NextRequest):
             await redis.expire(eKey, Math.ceil(WINDOW_MS / 1000) + 5);
             const eCount = await redis.zcard(eKey);
             if (eCount > MAX_PER_WINDOW) {
-              return { ok: false, status: 429, error: 'Demasiadas solicitudes desde este correo. Intenta más tarde.' };
+              return recordRedisViolation(redis, `email:${emailKey}`);
             }
           }
 
@@ -145,22 +228,29 @@ export async function validateAntiSpam(data: ContactFormData, req: NextRequest):
     }
 
     // Fallback: in-memory (development)
+    const ipBlock = getMemoryBlock(`ip:${ip}`);
+    if (ipBlock) return ipBlock;
+
+    if (emailKey) {
+      const emailBlock = getMemoryBlock(`email:${emailKey}`);
+      if (emailBlock) return emailBlock;
+    }
+
     // Track by IP
     const ipArr = ipWindowMap.get(ip) || [];
     pruneWindow(ipArr, cutoff);
     if (ipArr.length >= MAX_PER_WINDOW) {
-      return { ok: false, status: 429, error: 'Demasiadas solicitudes desde tu ubicación. Intenta más tarde.' };
+      return recordMemoryViolation(`ip:${ip}`);
     }
     ipArr.push(ts);
     ipWindowMap.set(ip, ipArr);
 
     // Track by email (if provided)
-    const emailKey = (data.email || '').toLowerCase();
     if (emailKey) {
       const eArr = emailWindowMap.get(emailKey) || [];
       pruneWindow(eArr, cutoff);
       if (eArr.length >= MAX_PER_WINDOW) {
-        return { ok: false, status: 429, error: 'Demasiadas solicitudes desde este correo. Intenta más tarde.' };
+        return recordMemoryViolation(`email:${emailKey}`);
       }
       eArr.push(ts);
       emailWindowMap.set(emailKey, eArr);

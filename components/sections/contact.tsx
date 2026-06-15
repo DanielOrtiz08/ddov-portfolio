@@ -52,6 +52,7 @@ export function ContactSection() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<ContactFormErrors>({});
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
     email: '',
@@ -62,6 +63,8 @@ export function ContactSection() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cooldownSeconds > 0) return;
+
     setErrorMessage(null);
     setFormErrors({});
     setIsSubmitting(true);
@@ -95,6 +98,11 @@ export function ContactSection() {
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 429) {
+          const retryAfter = Number(response.headers.get('Retry-After') || 60);
+          setCooldownSeconds(Number.isFinite(retryAfter) ? retryAfter : 60);
+        }
+
         // Manejar errores de validación retornados por la API
         if (result?.error && typeof result.error === 'string') {
           try {
@@ -134,6 +142,16 @@ export function ContactSection() {
       [e.target.name]: e.target.value,
     }));
   };
+
+  React.useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+
+    const timeout = window.setTimeout(() => {
+      setCooldownSeconds((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timeout);
+  }, [cooldownSeconds]);
 
   return (
     <section id="contact" className="py-24 relative overflow-hidden">
@@ -355,13 +373,18 @@ export function ContactSection() {
 
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || cooldownSeconds > 0}
                     className="w-full btn-gradient text-white h-12 rounded-xl"
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         Sending...
+                      </>
+                    ) : cooldownSeconds > 0 ? (
+                      <>
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        Try again in {cooldownSeconds}s
                       </>
                     ) : (
                       <>
