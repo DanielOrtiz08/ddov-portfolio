@@ -50,16 +50,17 @@ export function Footer({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <motion.a
-              href="#"
-              className="flex items-center gap-2 font-semibold text-lg"
+            <motion.button
+              type="button"
+              onClick={() => onSelectSection?.('Hero')}
+              className="flex items-center gap-2 border-0 bg-transparent p-0 text-left text-lg font-semibold"
               whileHover={{ scale: 1.02 }}
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
                 <Terminal className="h-5 w-5 text-white" />
               </div>
               <span className="gradient-text font-mono">Systems Engineer</span>
-            </motion.a>
+            </motion.button>
             <p className="text-sm text-muted-foreground max-w-xs">
               Backend Engineer specializing in Java, Spring Boot, and Cloud Architecture.
               Building scalable distributed systems.

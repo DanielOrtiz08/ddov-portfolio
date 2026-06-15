@@ -54,9 +54,10 @@ export function Header({
       )}
     >
       <nav className="section-container flex items-center justify-between">
-        <motion.a
-          href="#"
-          className="flex items-center gap-2 font-semibold text-lg"
+        <motion.button
+          type="button"
+          onClick={() => onSelectSection?.('Hero')}
+          className="flex items-center gap-2 border-0 bg-transparent p-0 text-left text-lg font-semibold"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
@@ -65,7 +66,7 @@ export function Header({
             <Terminal className="h-5 w-5 text-white" />
           </div>
           <span className="gradient-text font-mono">Systems Engineer</span>
-        </motion.a>
+        </motion.button>
 
         {/* Desktop Navigation */}
         <motion.div
