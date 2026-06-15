@@ -70,7 +70,6 @@ export async function validateAntiSpam(data: ContactFormData, req: NextRequest):
     // If Redis is unavailable, the code falls back safely to in-memory anti-spam.
     const redis = await getRedis();
     if (redis) {
-      console.info('Redis anti-spam active');
       try {
           // Redis-backed implementation (production-ready)
           const ipKey = `antispam:ip:${ip}`;

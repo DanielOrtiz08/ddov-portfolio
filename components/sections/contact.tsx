@@ -56,6 +56,7 @@ export function ContactSection() {
     email: '',
     subject: '',
     message: '',
+    website: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,7 +112,7 @@ export function ContactSection() {
 
       // Éxito
       setIsSubmitted(true);
-      setFormData({ name: '', email: '', subject: '', message: '' });
+      setFormData({ name: '', email: '', subject: '', message: '', website: '' });
 
       // Reset después de 5 segundos
       setTimeout(() => setIsSubmitted(false), 5000);
@@ -244,6 +245,17 @@ export function ContactSection() {
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  <input
+                    type="text"
+                    name="website"
+                    value={formData.website || ''}
+                    onChange={handleChange}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    className="hidden"
+                    aria-hidden="true"
+                  />
+
                   {errorMessage && (
                     <Alert>
                       <div className="flex items-start gap-2">
@@ -266,6 +278,7 @@ export function ContactSection() {
                         value={formData.name}
                         onChange={handleChange}
                         required
+                        maxLength={80}
                         className="bg-card"
                         aria-invalid={!!formErrors.name}
                       />
@@ -285,6 +298,7 @@ export function ContactSection() {
                         value={formData.email}
                         onChange={handleChange}
                         required
+                        maxLength={120}
                         className="bg-card"
                         aria-invalid={!!formErrors.email}
                       />
@@ -306,6 +320,7 @@ export function ContactSection() {
                       value={formData.subject}
                       onChange={handleChange}
                       required
+                      maxLength={120}
                       className="bg-card"
                       aria-invalid={!!formErrors.subject}
                     />
@@ -326,6 +341,7 @@ export function ContactSection() {
                       onChange={handleChange}
                       required
                       rows={5}
+                      maxLength={3000}
                       className="bg-card resize-none"
                       aria-invalid={!!formErrors.message}
                     />

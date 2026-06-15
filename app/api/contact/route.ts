@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ContactFormData, SendContactResponse } from '@/lib/types/contact';
-import { validateContactForm, isFormValid } from '@/lib/validation/contact';
+import { SendContactResponse } from '@/lib/types/contact';
+import { parseContactFormData, isFormValid } from '@/lib/validation/contact';
 import { validateAntiSpam } from '@/lib/validation/antispam';
 import { sendEmailNotification } from '@/lib/services/email';
 import { sendWhatsAppNotification } from '@/lib/services/whatsapp';
@@ -16,17 +16,37 @@ export async function POST(request: NextRequest): Promise<NextResponse<SendConta
     }
 
     // Parsear el body
-    const body: unknown = await request.json();
-    const data = body as ContactFormData;
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'El cuerpo de la solicitud no es JSON válido',
+        },
+        { status: 400 }
+      );
+    }
 
     // Validar datos
-    const errors = validateContactForm(data);
+    const { data, errors } = parseContactFormData(body);
     if (!isFormValid(errors)) {
       return NextResponse.json(
         {
           success: false,
           message: 'Validación fallida',
           error: JSON.stringify(errors),
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Validación fallida',
         },
         { status: 400 }
       );
