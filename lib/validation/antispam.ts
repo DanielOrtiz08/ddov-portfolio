@@ -66,76 +66,83 @@ export async function validateAntiSpam(data: ContactFormData, req: NextRequest):
     const clientKey = getClientKey(req);
     const ip = clientKey.split('::')[0];
 
-    const redis = getRedis();
+    // Redis is used only when REDIS_URL is configured and connection succeeds.
+    // If Redis is unavailable, the code falls back safely to in-memory anti-spam.
+    const redis = await getRedis();
     if (redis) {
-      // Redis-backed implementation (production-ready)
-      const ipKey = `antispam:ip:${ip}`;
-      const member = `${ts}-${Math.random().toString(36).slice(2, 8)}`;
-      await redis.zremrangebyscore(ipKey, 0, cutoff);
-      await redis.zadd(ipKey, ts.toString(), member);
-      await redis.expire(ipKey, Math.ceil(WINDOW_MS / 1000) + 5);
-      const ipCount = await redis.zcard(ipKey);
-      if (ipCount > MAX_PER_WINDOW) {
-        return { ok: false, status: 429, error: 'Demasiadas solicitudes desde tu ubicación. Intenta más tarde.' };
-      }
+      console.info('Redis anti-spam active');
+      try {
+          // Redis-backed implementation (production-ready)
+          const ipKey = `antispam:ip:${ip}`;
+          const member = `${ts}-${Math.random().toString(36).slice(2, 8)}`;
+          await redis.zremrangebyscore(ipKey, 0, cutoff);
+          await redis.zadd(ipKey, ts.toString(), member);
+          await redis.expire(ipKey, Math.ceil(WINDOW_MS / 1000) + 5);
+          const ipCount = await redis.zcard(ipKey);
+          if (ipCount > MAX_PER_WINDOW) {
+            return { ok: false, status: 429, error: 'Demasiadas solicitudes desde tu ubicación. Intenta más tarde.' };
+          }
 
-      const emailKey = (data.email || '').toLowerCase();
-      if (emailKey) {
-        const eKey = `antispam:email:${emailKey}`;
-        const eMember = `${ts}-${Math.random().toString(36).slice(2, 8)}`;
-        await redis.zremrangebyscore(eKey, 0, cutoff);
-        await redis.zadd(eKey, ts.toString(), eMember);
-        await redis.expire(eKey, Math.ceil(WINDOW_MS / 1000) + 5);
-        const eCount = await redis.zcard(eKey);
-        if (eCount > MAX_PER_WINDOW) {
-          return { ok: false, status: 429, error: 'Demasiadas solicitudes desde este correo. Intenta más tarde.' };
-        }
-      }
+          const emailKey = (data.email || '').toLowerCase();
+          if (emailKey) {
+            const eKey = `antispam:email:${emailKey}`;
+            const eMember = `${ts}-${Math.random().toString(36).slice(2, 8)}`;
+            await redis.zremrangebyscore(eKey, 0, cutoff);
+            await redis.zadd(eKey, ts.toString(), eMember);
+            await redis.expire(eKey, Math.ceil(WINDOW_MS / 1000) + 5);
+            const eCount = await redis.zcard(eKey);
+            if (eCount > MAX_PER_WINDOW) {
+              return { ok: false, status: 429, error: 'Demasiadas solicitudes desde este correo. Intenta más tarde.' };
+            }
+          }
 
-      // Basic message checks (length / words)
-      const text = (data.message || '').trim();
-      if (text.length < 10) {
-        return { ok: false, status: 400, error: 'El mensaje es muy corto. Por favor describe tu solicitud con más detalle.' };
-      }
-      const words = text.split(/\s+/).filter(Boolean);
-      if (words.length < 3) {
-        return { ok: false, status: 400, error: 'El mensaje parece incompleto. Escribe al menos 3 palabras.' };
-      }
+          // Basic message checks (length / words)
+          const text = (data.message || '').trim();
+          if (text.length < 10) {
+            return { ok: false, status: 400, error: 'El mensaje es muy corto. Por favor describe tu solicitud con más detalle.' };
+          }
+          const words = text.split(/\s+/).filter(Boolean);
+          if (words.length < 3) {
+            return { ok: false, status: 400, error: 'El mensaje parece incompleto. Escribe al menos 3 palabras.' };
+          }
 
-      if (containsBadWords(text)) {
-        return { ok: false, status: 400, error: 'El mensaje contiene lenguaje inapropiado.' };
-      }
+          if (containsBadWords(text)) {
+            return { ok: false, status: 400, error: 'El mensaje contiene lenguaje inapropiado.' };
+          }
 
-      const letters = (text.match(/[a-zA-ZáéíóúüñÑ]/g) || []).length;
-      const ratio = letters / Math.max(1, text.length);
-      if (ratio < 0.4) {
-        return { ok: false, status: 400, error: 'El mensaje no parece tener contenido legible.' };
-      }
+          const letters = (text.match(/[a-zA-ZáéíóúüñÑ]/g) || []).length;
+          const ratio = letters / Math.max(1, text.length);
+          if (ratio < 0.4) {
+            return { ok: false, status: 400, error: 'El mensaje no parece tener contenido legible.' };
+          }
 
-      // Repeated identical messages detection using a small JSON value
-      const lastKey = `antispam:last:${clientKey}`;
-      const lastRaw = await redis.get(lastKey);
-      if (lastRaw) {
-        try {
-          const last = JSON.parse(lastRaw) as { text: string; ts: number; count: number };
-          if (last.text === text && ts - last.ts < REPEAT_WINDOW_MS) {
-            last.count = (last.count || 1) + 1;
-            last.ts = ts;
-            await redis.set(lastKey, JSON.stringify(last), 'PX', REPEAT_WINDOW_MS * 3);
-            if (last.count > 2) {
-              return { ok: false, status: 429, error: 'Detectado envío repetido de mensajes. Espera un momento.' };
+          // Repeated identical messages detection using a small JSON value
+          const lastKey = `antispam:last:${clientKey}`;
+          const lastRaw = await redis.get(lastKey);
+          if (lastRaw) {
+            try {
+              const last = JSON.parse(lastRaw) as { text: string; ts: number; count: number };
+              if (last.text === text && ts - last.ts < REPEAT_WINDOW_MS) {
+                last.count = (last.count || 1) + 1;
+                last.ts = ts;
+                await redis.set(lastKey, JSON.stringify(last), 'PX', REPEAT_WINDOW_MS * 3);
+                if (last.count > 2) {
+                  return { ok: false, status: 429, error: 'Detectado envío repetido de mensajes. Espera un momento.' };
+                }
+              } else {
+                await redis.set(lastKey, JSON.stringify({ text, ts, count: 1 }), 'PX', REPEAT_WINDOW_MS * 3);
+              }
+            } catch (e) {
+              await redis.set(lastKey, JSON.stringify({ text, ts, count: 1 }), 'PX', REPEAT_WINDOW_MS * 3);
             }
           } else {
             await redis.set(lastKey, JSON.stringify({ text, ts, count: 1 }), 'PX', REPEAT_WINDOW_MS * 3);
           }
-        } catch (e) {
-          await redis.set(lastKey, JSON.stringify({ text, ts, count: 1 }), 'PX', REPEAT_WINDOW_MS * 3);
-        }
-      } else {
-        await redis.set(lastKey, JSON.stringify({ text, ts, count: 1 }), 'PX', REPEAT_WINDOW_MS * 3);
-      }
 
-      return { ok: true };
+          return { ok: true };
+        } catch (redisError) {
+          console.warn('Redis anti-spam fallback due to error:', redisError && redisError instanceof Error ? redisError.message : String(redisError));
+        }
     }
 
     // Fallback: in-memory (development)
