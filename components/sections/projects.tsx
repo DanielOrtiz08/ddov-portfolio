@@ -126,7 +126,7 @@ const projects = [
     github: 'https://github.com/DanielOrtiz08/Nearby',
     demo: null,
     featured: false,
-    color: 'from-violet-600 to-purple-600',
+    color: 'from-blue-700 to-sky-600',
     comingSoon: true
   },
   {

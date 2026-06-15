@@ -31,7 +31,7 @@ const architecturePatterns = [
     icon: Globe,
     description: 'Single entry point for all client requests',
     technologies: ['Spring Cloud Gateway', 'Zuul'],
-    color: 'from-purple-500 to-pink-400',
+    color: 'from-sky-600 to-blue-500',
   },
   {
     name: 'Service Discovery',
@@ -54,7 +54,7 @@ const securityPatterns = [
     name: 'OAuth2',
     icon: Lock,
     description: 'Authorization framework',
-    color: 'from-indigo-500 to-violet-400',
+    color: 'from-blue-700 to-cyan-500',
   },
   {
     name: 'JWT',
@@ -297,7 +297,7 @@ export function ArchitectureSection() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={isInView ? { opacity: 1, x: 0 } : {}}
                 transition={{ duration: 0.4, delay: 0.9 + index * 0.1 }}
-                className="flex items-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-border/50"
+                className="flex items-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-border/50"
               >
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                 <span className="font-medium">{broker}</span>
