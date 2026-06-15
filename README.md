@@ -77,13 +77,33 @@ npm start
 
 ## Environment Variables
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory for local development and set the following values:
 
 ```env
-# Optional: For future integrations
 NEXT_PUBLIC_GITHUB_USERNAME=DanielOrtiz08
 NEXT_PUBLIC_LINKEDIN_URL=https://www.linkedin.com/in/daniel-david-ortiz-villanueva-7a8053257
+
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL=onboarding@resend.dev
+RESEND_OWNER_EMAIL=ddov0811@gmail.com
+
+WHATSAPP_SERVICE=telegram
+WHATSAPP_PHONE=3243913693
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_CHAT_ID=your_telegram_chat_id
+
+REDIS_URL=rediss://:password@host:6380?ssl=true
+ANTISPAM_WINDOW_MS=60000
+ANTISPAM_MAX_PER_WINDOW=3
+ANTISPAM_REPEAT_MS=10000
 ```
+
+> Important: Do not commit `.env` to GitHub. Keep secret values in Azure App Service configuration or GitHub Actions secrets.
+
+For Azure deployment, use the instructions in [AZURE_DEPLOYMENT.md](./AZURE_DEPLOYMENT.md).
 
 ## Customization
 
